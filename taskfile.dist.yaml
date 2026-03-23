@@ -20,6 +20,11 @@ tasks:
       - task: mongo-up-detach
       - defer: {task: mongo-down}
       - go run {{.ROOT_DIR}}/cmd/ambulance-api-service
+  
+  test:
+    desc: Run test for the app
+    cmds:
+      - go test -v ./...
 
   openapi:
     desc: Generate OpenAPI client using openapi-generator-cli
