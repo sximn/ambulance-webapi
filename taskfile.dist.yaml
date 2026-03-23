@@ -3,6 +3,11 @@ version: '3'
 env:
   AMBULANCE_API_ENVIRONMENT: Development
   AMBULANCE_API_PORT: "8080"
+  AMBULANCE_API_MONGODB_USERNAME: root
+  AMBULANCE_API_MONGODB_PASSWORD: neUhaDnes
+
+vars:
+  COMPOSE_FILE: "{{.ROOT_DIR}}/deployments/docker-compose/compose.yaml"
 
 tasks:
   default:
@@ -10,11 +15,28 @@ tasks:
       - task: start
 
   start:
-    desc: Run the ambulance API service
+    desc: Start MongoDB, run the service, then tear down MongoDB
     cmds:
-      - go run ./cmd/ambulance-api-service
+      - task: mongo-up-detach
+      - defer: {task: mongo-down}
+      - go run {{.ROOT_DIR}}/cmd/ambulance-api-service
 
   openapi:
     desc: Generate OpenAPI client using openapi-generator-cli
     cmds:
       - docker run --rm -it -v {{.ROOT_DIR}}:/local openapitools/openapi-generator-cli generate -c /local/scripts/generator-cfg.yaml
+
+  mongo:
+    desc: Start MongoDB in the foreground
+    cmds:
+      - docker compose --file {{.COMPOSE_FILE}} up
+
+  mongo-up-detach:
+    internal: true
+    cmds:
+      - docker compose --file {{.COMPOSE_FILE}} up --detach
+
+  mongo-down:
+    internal: true
+    cmds:
+      - docker compose --file {{.COMPOSE_FILE}} down
