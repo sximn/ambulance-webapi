@@ -106,3 +106,47 @@ func (suite *AmbulanceWlSuite) Test_UpdateWl_DbServiceUpdateCalled() {
 	suite.dbServiceMock.AssertCalled(suite.T(), "UpdateDocument", mock.Anything, "test-ambulance", mock.Anything)
 
 }
+
+func (suite *AmbulanceWlSuite) Test_DeleteLastWaitingListEntry() {
+	// ARRANGE
+	suite.dbServiceMock.
+		On("UpdateDocument", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).
+		On("FindDocument", mock.Anything, mock.Anything).
+		Return(
+			&Ambulance{
+				Id: "test-ambulance",
+				WaitingList: []WaitingListEntry{
+					{
+						Id:                       "test-entry",
+						PatientId:                "test-patient",
+						WaitingSince:             time.Now(),
+						EstimatedDurationMinutes: 101,
+					},
+				},
+			},
+			nil,
+		)
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Set("db_service", suite.dbServiceMock)
+	ctx.Params = []gin.Param{
+		{Key: "ambulanceId", Value: "test-ambulance"},
+		{Key: "entryId", Value: "test-entry"}, // the only entry
+	}
+	ctx.Request = httptest.NewRequest("DELETE", "/ambulance/test-ambulance/waitinglist/test-entry", nil)
+
+	ambulance, _ := suite.dbServiceMock.FindDocument(context.Background(), "test-ambulance")
+	sut := implAmbulanceWaitingListAPI{}
+
+	// initial ASSERT - verify that before delete we prepared ambulance with a single entry
+	suite.Require().Len(ambulance.WaitingList, 1)
+
+	// ACT
+	sut.DeleteWaitingListEntry(ctx)
+
+	// ASSERT
+	suite.Require().Len(ambulance.WaitingList, 0)
+}
