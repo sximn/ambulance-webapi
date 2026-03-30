@@ -36,6 +36,10 @@ tasks:
     cmds:
       - docker compose --file {{.COMPOSE_FILE}} up
 
+  docker:
+    cmds:
+      - docker build -t xukus/ambulance-wl-webapi:local-build -f {{.ROOT_DIR}}/build/docker/Dockerfile .
+
   mongo-up-detach:
     internal: true
     cmds:
