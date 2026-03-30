@@ -7,6 +7,11 @@ import (
 )
 
 func (a *Ambulance) reconcileWaitingList() {
+	if len(a.WaitingList) == 0 {
+		// do not reconcile if the list is empty
+		return
+	}
+
 	slices.SortFunc(a.WaitingList, func(left, right WaitingListEntry) int {
 		if left.WaitingSince.Before(right.WaitingSince) {
 			return -1
